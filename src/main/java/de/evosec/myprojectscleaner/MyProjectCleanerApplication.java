@@ -24,8 +24,9 @@ public class MyProjectCleanerApplication implements CommandLineRunner {
 
 	@PostConstruct
 	public void setProxySelector() {
-		ProxySelector
-		    .setDefault(ProxySearch.getDefaultProxySearch().getProxySelector());
+		ProxySelector.setDefault(
+				ProxySearch.getDefaultProxySearch().getProxySelector()
+		);
 	}
 
 	@Autowired
@@ -34,8 +35,10 @@ public class MyProjectCleanerApplication implements CommandLineRunner {
 	@Override
 	public void run(String... args) throws Exception {
 		Path workingDirectory = Paths.get(System.getProperty("user.dir", "."));
-		new MyProjectCleaner(workingDirectory,
-		    properties.getEclipseVersionToKeep()).clean();
+		new MyProjectCleaner(
+				workingDirectory,
+				properties.getEclipseVersionToKeep()
+		).clean();
 	}
 
 }

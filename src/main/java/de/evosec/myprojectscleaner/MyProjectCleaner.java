@@ -21,14 +21,16 @@ import org.slf4j.LoggerFactory;
 
 public class MyProjectCleaner {
 
-	private static final Logger LOG =
-	        LoggerFactory.getLogger(MyProjectCleaner.class);
+	private static final Logger LOG = LoggerFactory
+			.getLogger(MyProjectCleaner.class);
 
 	private Path workingDirectory;
 	private String eclipseVersionToKeep;
 
-	public MyProjectCleaner(Path workingDirectory,
-	        String eclipseVersionToKeep) {
+	public MyProjectCleaner(
+			Path workingDirectory,
+			String eclipseVersionToKeep
+	) {
 		this.workingDirectory = workingDirectory;
 		this.eclipseVersionToKeep = eclipseVersionToKeep;
 	}
@@ -39,8 +41,10 @@ public class MyProjectCleaner {
 		Files.walkFileTree(workingDirectory, new SimpleFileVisitor<Path>() {
 
 			@Override
-			public FileVisitResult preVisitDirectory(Path dir,
-			        BasicFileAttributes attrs) throws IOException {
+			public FileVisitResult preVisitDirectory(
+					Path dir,
+					BasicFileAttributes attrs
+			) throws IOException {
 				Objects.requireNonNull(dir);
 				Objects.requireNonNull(attrs);
 				if (dir.endsWith(".git")) {
@@ -48,8 +52,8 @@ public class MyProjectCleaner {
 					return FileVisitResult.SKIP_SIBLINGS;
 				}
 				if (dir.endsWith("eclipse") || dir.endsWith(".metadata")
-				        || dir.endsWith(".recommenders")
-				        || dir.endsWith("Servers")) {
+						|| dir.endsWith(".recommenders")
+						|| dir.endsWith("Servers")) {
 					return FileVisitResult.SKIP_SUBTREE;
 				}
 				if (dir.endsWith("workspace")) {
@@ -68,11 +72,11 @@ public class MyProjectCleaner {
 		try {
 			if (Files.exists(eclipse)) {
 				Files.readAllLines(eclipse.resolve(".eclipseproduct"))
-				    .stream()
-				    .filter(s -> s.startsWith("version="))
-				    .filter(s -> !s.endsWith(eclipseVersionToKeep))
-				    .findAny()
-				    .ifPresent(s -> deleteRecursively(eclipse));
+						.stream()
+						.filter(s -> s.startsWith("version="))
+						.filter(s -> !s.endsWith(eclipseVersionToKeep))
+						.findAny()
+						.ifPresent(s -> deleteRecursively(eclipse));
 				if (!Files.exists(workspace.resolve(".metadata"))) {
 					deleteRecursively(eclipse);
 				}
@@ -90,24 +94,26 @@ public class MyProjectCleaner {
 
 	private void checkRepository(Path potentialRepository) {
 		try (Repository repository = new FileRepositoryBuilder()
-		    .setWorkTree(potentialRepository.toFile())
-		    .setMustExist(true)
-		    .build(); Git git = new Git(repository);) {
+				.setWorkTree(potentialRepository.toFile())
+				.setMustExist(true)
+				.build(); Git git = new Git(repository);) {
 			Status status = git.status().call();
 			if (status.isClean()) {
 				Path eclipse = potentialRepository.getParent()
-				    .getParent()
-				    .resolve("eclipse");
+						.getParent()
+						.resolve("eclipse");
 				if (!Files.exists(eclipse)) {
 					LOG.debug("eclipse does not exist: {}", eclipse);
-					LOG.debug("{}: cleaning",
-					    git.getRepository().getWorkTree());
+					LOG.debug(
+							"{}: cleaning",
+							git.getRepository().getWorkTree()
+					);
 					git.clean()
-					    .setForce(true)
-					    .setCleanDirectories(true)
-					    .setIgnore(false)
-					    .setDryRun(false)
-					    .call();
+							.setForce(true)
+							.setCleanDirectories(true)
+							.setIgnore(false)
+							.setDryRun(false)
+							.call();
 				}
 				git.pull().setRebase(true).call();
 			} else {
@@ -126,15 +132,19 @@ public class MyProjectCleaner {
 			Files.walkFileTree(directory, new SimpleFileVisitor<Path>() {
 
 				@Override
-				public FileVisitResult visitFile(Path file,
-				        BasicFileAttributes attrs) throws IOException {
+				public FileVisitResult visitFile(
+						Path file,
+						BasicFileAttributes attrs
+				) throws IOException {
 					Files.delete(file);
 					return FileVisitResult.CONTINUE;
 				}
 
 				@Override
-				public FileVisitResult postVisitDirectory(Path dir,
-				        IOException exc) throws IOException {
+				public FileVisitResult postVisitDirectory(
+						Path dir,
+						IOException exc
+				) throws IOException {
 					Files.delete(dir);
 					return FileVisitResult.CONTINUE;
 				}
