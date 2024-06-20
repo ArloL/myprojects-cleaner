@@ -1,5 +1,7 @@
 package de.evosec.myprojectscleaner;
 
+import static de.evosec.myprojectscleaner.MyPaths.getParent;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.FileVisitResult;
@@ -19,7 +21,66 @@ import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class MyProjectCleaner {
+
+	private static final class CollectWorkspacesAndPotentialReposVisitor
+			extends SimpleFileVisitor<Path> {
+
+		private final List<Path> workspaces;
+		private final List<Path> potentialRepositories;
+
+		private CollectWorkspacesAndPotentialReposVisitor(
+				List<Path> workspaces,
+				List<Path> potentialRepositories
+		) {
+			this.workspaces = workspaces;
+			this.potentialRepositories = potentialRepositories;
+		}
+
+		@Override
+		public FileVisitResult preVisitDirectory(
+				Path dir,
+				BasicFileAttributes attrs
+		) throws IOException {
+			Objects.requireNonNull(dir);
+			Objects.requireNonNull(attrs);
+			if (dir.endsWith(".git")) {
+				potentialRepositories.add(dir.getParent());
+				return FileVisitResult.SKIP_SIBLINGS;
+			}
+			if (dir.endsWith("eclipse") || dir.endsWith(".metadata")
+					|| dir.endsWith(".recommenders")
+					|| dir.endsWith("Servers")) {
+				return FileVisitResult.SKIP_SUBTREE;
+			}
+			if (dir.endsWith("workspace")) {
+				workspaces.add(dir);
+			}
+			return FileVisitResult.CONTINUE;
+		}
+
+	}
+
+	private static final class RecursiveDeletingFileVisitor
+			extends SimpleFileVisitor<Path> {
+
+		@Override
+		public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
+				throws IOException {
+			Files.delete(file);
+			return FileVisitResult.CONTINUE;
+		}
+
+		@Override
+		public FileVisitResult postVisitDirectory(Path dir, IOException exc)
+				throws IOException {
+			Files.delete(dir);
+			return FileVisitResult.CONTINUE;
+		}
+
+	}
 
 	private static final Logger LOG = LoggerFactory
 			.getLogger(MyProjectCleaner.class);
@@ -38,37 +99,19 @@ public class MyProjectCleaner {
 	public void clean() throws IOException, GitAPIException {
 		List<Path> potentialRepositories = new ArrayList<>();
 		List<Path> workspaces = new ArrayList<>();
-		Files.walkFileTree(workingDirectory, new SimpleFileVisitor<Path>() {
-
-			@Override
-			public FileVisitResult preVisitDirectory(
-					Path dir,
-					BasicFileAttributes attrs
-			) throws IOException {
-				Objects.requireNonNull(dir);
-				Objects.requireNonNull(attrs);
-				if (dir.endsWith(".git")) {
-					potentialRepositories.add(dir.getParent());
-					return FileVisitResult.SKIP_SIBLINGS;
-				}
-				if (dir.endsWith("eclipse") || dir.endsWith(".metadata")
-						|| dir.endsWith(".recommenders")
-						|| dir.endsWith("Servers")) {
-					return FileVisitResult.SKIP_SUBTREE;
-				}
-				if (dir.endsWith("workspace")) {
-					workspaces.add(dir);
-				}
-				return FileVisitResult.CONTINUE;
-			}
-
-		});
+		Files.walkFileTree(
+				workingDirectory,
+				new CollectWorkspacesAndPotentialReposVisitor(
+						workspaces,
+						potentialRepositories
+				)
+		);
 		workspaces.parallelStream().forEach(this::checkWorkspace);
 		potentialRepositories.parallelStream().forEach(this::checkRepository);
 	}
 
 	private void checkWorkspace(Path workspace) {
-		Path eclipse = workspace.getParent().resolve("eclipse");
+		Path eclipse = getParent(workspace).resolve("eclipse");
 		try {
 			if (Files.exists(eclipse)) {
 				Files.readAllLines(eclipse.resolve(".eclipseproduct"))
@@ -92,6 +135,10 @@ public class MyProjectCleaner {
 		}
 	}
 
+	@SuppressFBWarnings(
+			value = "BC_UNCONFIRMED_CAST_OF_RETURN_VALUE",
+			justification = "FileRepositoryBuilder uses generics which spotbugs cant know"
+	)
 	private void checkRepository(Path potentialRepository) {
 		try (Repository repository = new FileRepositoryBuilder()
 				.setWorkTree(potentialRepository.toFile())
@@ -99,8 +146,7 @@ public class MyProjectCleaner {
 				.build(); Git git = new Git(repository);) {
 			Status status = git.status().call();
 			if (status.isClean()) {
-				Path eclipse = potentialRepository.getParent()
-						.getParent()
+				Path eclipse = getParent(getParent(potentialRepository))
 						.resolve("eclipse");
 				if (!Files.exists(eclipse)) {
 					LOG.debug("eclipse does not exist: {}", eclipse);
@@ -129,27 +175,7 @@ public class MyProjectCleaner {
 			return;
 		}
 		try {
-			Files.walkFileTree(directory, new SimpleFileVisitor<Path>() {
-
-				@Override
-				public FileVisitResult visitFile(
-						Path file,
-						BasicFileAttributes attrs
-				) throws IOException {
-					Files.delete(file);
-					return FileVisitResult.CONTINUE;
-				}
-
-				@Override
-				public FileVisitResult postVisitDirectory(
-						Path dir,
-						IOException exc
-				) throws IOException {
-					Files.delete(dir);
-					return FileVisitResult.CONTINUE;
-				}
-
-			});
+			Files.walkFileTree(directory, new RecursiveDeletingFileVisitor());
 		} catch (IOException e) {
 			throw new UncheckedIOException(e);
 		}
