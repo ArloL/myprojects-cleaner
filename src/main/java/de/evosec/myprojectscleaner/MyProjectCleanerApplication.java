@@ -2,7 +2,6 @@ package de.evosec.myprojectscleaner;
 
 import java.net.ProxySelector;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import jakarta.annotation.PostConstruct;
 
@@ -34,7 +33,7 @@ public class MyProjectCleanerApplication implements CommandLineRunner {
 
 	@Override
 	public void run(String... args) throws Exception {
-		Path workingDirectory = Paths.get(System.getProperty("user.dir", "."));
+		Path workingDirectory = Path.of(System.getProperty("user.dir", "."));
 		new MyProjectCleaner(
 				workingDirectory,
 				properties.getEclipseVersionToKeep()
