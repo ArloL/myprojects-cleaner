@@ -3,8 +3,6 @@ package de.evosec.myprojectscleaner;
 import java.net.ProxySelector;
 import java.nio.file.Path;
 
-import jakarta.annotation.PostConstruct;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -12,6 +10,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 import com.github.markusbernhardt.proxy.ProxySearch;
+
+import jakarta.annotation.PostConstruct;
 
 @SpringBootApplication
 @EnableConfigurationProperties(MyProjectCleanerProperties.class)
