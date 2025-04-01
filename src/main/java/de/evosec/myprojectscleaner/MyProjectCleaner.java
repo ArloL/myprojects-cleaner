@@ -135,10 +135,6 @@ public class MyProjectCleaner {
 		}
 	}
 
-	@SuppressFBWarnings(
-			value = "BC_UNCONFIRMED_CAST_OF_RETURN_VALUE",
-			justification = "FileRepositoryBuilder uses generics which spotbugs cant know"
-	)
 	private void checkRepository(Path potentialRepository) {
 		try (Repository repository = new FileRepositoryBuilder()
 				.setWorkTree(potentialRepository.toFile())
