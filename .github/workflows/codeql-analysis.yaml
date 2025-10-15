@@ -11,7 +11,7 @@ on:
   - cron: '30 23 20 * *'
 permissions: {}
 env:
-  JAVA_VERSION: 21
+  JAVA_VERSION: 25
 
 jobs:
   debug:
