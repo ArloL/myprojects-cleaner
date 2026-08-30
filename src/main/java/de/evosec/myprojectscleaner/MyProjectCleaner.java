@@ -50,7 +50,8 @@ public class MyProjectCleaner {
 				potentialRepositories.add(dir.getParent());
 				return FileVisitResult.SKIP_SIBLINGS;
 			}
-			if (dir.endsWith("eclipse") || dir.endsWith(".metadata")
+			if (dir.endsWith(ECLIPSE_INSTALLATION_DIR)
+					|| dir.endsWith(WORKSPACE_METADATA_DIR)
 					|| dir.endsWith(".recommenders")
 					|| dir.endsWith("Servers")) {
 				return FileVisitResult.SKIP_SUBTREE;
@@ -82,6 +83,9 @@ public class MyProjectCleaner {
 
 	}
 
+	private static final String ECLIPSE_INSTALLATION_DIR = "eclipse";
+	private static final String WORKSPACE_METADATA_DIR = ".metadata";
+
 	private static final Logger LOG = LoggerFactory
 			.getLogger(MyProjectCleaner.class);
 
@@ -111,7 +115,7 @@ public class MyProjectCleaner {
 	}
 
 	private void checkWorkspace(Path workspace) {
-		Path eclipse = getParent(workspace).resolve("eclipse");
+		Path eclipse = getParent(workspace).resolve(ECLIPSE_INSTALLATION_DIR);
 		try {
 			if (Files.exists(eclipse)) {
 				Files.readAllLines(eclipse.resolve(".eclipseproduct"))
@@ -120,12 +124,12 @@ public class MyProjectCleaner {
 						.filter(s -> !s.endsWith(eclipseVersionToKeep))
 						.findAny()
 						.ifPresent(s -> deleteRecursively(eclipse));
-				if (!Files.exists(workspace.resolve(".metadata"))) {
+				if (!Files.exists(workspace.resolve(WORKSPACE_METADATA_DIR))) {
 					deleteRecursively(eclipse);
 				}
 			}
 			if (!Files.exists(eclipse)) {
-				deleteRecursively(workspace.resolve(".metadata"));
+				deleteRecursively(workspace.resolve(WORKSPACE_METADATA_DIR));
 				deleteRecursively(workspace.resolve(".recommenders"));
 				deleteRecursively(workspace.resolve("Servers"));
 				deleteRecursively(workspace.resolve("RemoteSystemsTempFiles"));
@@ -143,7 +147,7 @@ public class MyProjectCleaner {
 			Status status = git.status().call();
 			if (status.isClean()) {
 				Path eclipse = getParent(getParent(potentialRepository))
-						.resolve("eclipse");
+						.resolve(ECLIPSE_INSTALLATION_DIR);
 				if (!Files.exists(eclipse)) {
 					LOG.debug("eclipse does not exist: {}", eclipse);
 					LOG.debug(
